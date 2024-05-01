@@ -1,0 +1,22 @@
+spring:
+
+  application:
+    name: user-service
+  datasource:
+    url: http://localhost:3306/user_service?useSSL=false&useLegacyDatetimeCode=false&serverTimezone=UTC
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: 8091
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: debug
