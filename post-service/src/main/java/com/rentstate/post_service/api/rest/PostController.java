@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+//PostController
+
 @CrossOrigin(origins = {"http://localhost:4200"})
 @RestController
 @RequestMapping(value = "/api/v1/posts", produces = "application/json")
