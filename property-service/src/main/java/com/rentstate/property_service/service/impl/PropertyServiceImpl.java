@@ -18,87 +18,164 @@ public class PropertyServiceImpl implements PropertyService {
 
     private final PropertyRepository propertyRepository;
 
+    private final ModelMapper modelMapper;
+
     @Autowired
-    public PropertyServiceImpl(PropertyRepository propertyRepository) {
+    public PropertyServiceImpl(PropertyRepository propertyRepository, ModelMapper modelMapper) {
         this.propertyRepository = propertyRepository;
+        this.modelMapper = modelMapper;
     }
 
     @Override
-    public PropertyResponse createProperty(PropertyRequest propertyRequestDTO, Long userId) {
-        Property property = new Property();
-        BeanUtils.copyProperties(propertyRequestDTO, property);
-        property.setUserId(userId);
-        property = propertyRepository.save(property);
-        return convertToPropertyResponseDTO(property);
+    public Property createProperty(PropertyRequest propertyRequest, Long userId) {
+        Property propertyResponse = modelMapper.map(propertyRequest, Property.class);
+        propertyResponse.setUserId(userId);
+        return propertyRepository.save(propertyResponse);
     }
 
     @Override
-    public PropertyResponse updateProperty(Long id, PropertyRequest propertyRequestDTO, Long userId) {
-        Property existingProperty = propertyRepository.findByIdAndUserId(id, userId);
-        if (existingProperty == null) {
-            return null;
+    public Property updateProperty(Long id, PropertyRequest propertyRequest) {
+        Optional<Property> optionalProperty = propertyRepository.findById(id);
+
+        if (optionalProperty.isEmpty()) {
+            throw new IllegalArgumentException("Property with id " + id + " not found");
         }
-        BeanUtils.copyProperties(propertyRequestDTO, existingProperty);
-        existingProperty = propertyRepository.save(existingProperty);
-        return convertToPropertyResponseDTO(existingProperty);
+        Property property = optionalProperty.get();
+        property.setCategory(propertyRequest.getCategory());
+        property.setDistrict(propertyRequest.getDistrict());
+        property.setLocation(propertyRequest.getLocation());
+        property.setLatitude(propertyRequest.getLatitude());
+        property.setLongitude(propertyRequest.getLongitude());
+        property.setDescription(propertyRequest.getDescription());
+        property.setCharacteristics(propertyRequest.getCharacteristics());
+        property.setCardimage(propertyRequest.getCardimage());
+        property.setPrice(propertyRequest.getPrice());
+
+        return propertyRepository.save(property);
     }
 
     @Override
-    public PropertyResponse deleteProperty(Long id, Long userId) {
-        Property property = propertyRepository.findByIdAndUserId(id, userId);
-        if (property != null) {
-            propertyRepository.delete(property);
-            return convertToPropertyResponseDTO(property);
+    public void deleteProperty(Long id) {
+        propertyRepository.deleteById(id);
+    }
+
+    @Override
+    public Property getPropertyById(Long id) {
+        Optional<Property> optionalProperty = propertyRepository.findById(id);
+        if (optionalProperty.isPresent()) {
+            return optionalProperty.get();
+        } else {
+            throw new IllegalArgumentException("Property with id " + id + " not found");
         }
-        return null;
+    }
+    @Override
+    public Iterable<PropertyResponse> getAllProperties() {
+        Iterable<Property> properties = propertyRepository.findAll();
+        Type listType = new TypeToken<Iterable<PropertyResponse>>() {}.getType();
+        return modelMapper.map(properties, listType);
     }
 
     @Override
-    public PropertyResponse getPropertyById(Long id) {
-        Property property = propertyRepository.findById(id).orElse(null);
-        if (property != null) {
-            return convertToPropertyResponseDTO(property);
-        }
-        return null;
+    public Iterable<PropertyResponse> getPropertiesByUserId(Long userId) {
+        Iterable<Property> properties = propertyRepository.findByUserId(userId);
+        Type listType = new TypeToken<Iterable<PropertyResponse>>() {}.getType();
+        return modelMapper.map(properties, listType);
+
     }
 
-    @Override
-    public List<PropertyResponse> getAllProperties() {
-        List<Property> properties = propertyRepository.findAll();
-        return properties.stream().map(this::convertToPropertyResponseDTO).collect(Collectors.toList());
-    }
+
 
     @Override
-    public List<PropertyResponse> getPropertiesByUserId(Long userId) {
-        List<Property> properties = propertyRepository.findByUserId(userId);
-        return properties.stream().map(this::convertToPropertyResponseDTO).collect(Collectors.toList());
-    }
-
-    @Override
-    public PropertyResponse availableProperty(Long id, Long userId) {
-        Property property = propertyRepository.findByIdAndUserId(id, userId);
-        if (property != null) {
+    public Property availableProperty(Long id) {
+        return propertyRepository.findById(id)
+                .map(property -> {
             property.setAvailable(true);
-            property = propertyRepository.save(property);
-            return convertToPropertyResponseDTO(property);
-        }
-        return null;
+            return propertyRepository.save(property);
+        }).orElse(null);
+
     }
 
     @Override
-    public PropertyResponse unavailableProperty(Long id, Long userId) {
-        Property property = propertyRepository.findByIdAndUserId(id, userId);
-        if (property != null) {
+    public Property unavailableProperty(Long id) {
+
+        return propertyRepository.findById(id)
+                .map(property -> {
             property.setAvailable(false);
-            property = propertyRepository.save(property);
-            return convertToPropertyResponseDTO(property);
-        }
-        return null;
+            return propertyRepository.save(property);
+        }).orElse(null);
+
     }
 
-    private PropertyResponse convertToPropertyResponseDTO(Property property) {
-        PropertyResponse propertyResponseDTO = new PropertyResponse();
-        BeanUtils.copyProperties(property, propertyResponseDTO);
-        return propertyResponseDTO;
+    @Override
+    public Property rentedProperty(Long id) {
+        return propertyRepository.findById(id)
+                .map(property -> {
+            property.setRented(true);
+            return propertyRepository.save(property);
+        }).orElse(null);
+
     }
+
+    @Override
+    public Property unrentedProperty(Long id) {
+        return propertyRepository.findById(id)
+                .map(property -> {
+            property.setRented(false);
+            return propertyRepository.save(property);
+        }).orElse(null);
+
+    }
+
+    @Override
+    public void addInterestedUser(Long propertyId, Long userId) {
+        Optional<Property> optionalProperty = propertyRepository.findById(propertyId);
+
+        if (optionalProperty.isEmpty()) {
+            throw new IllegalArgumentException("Property with id " + propertyId + " not found");
+        }
+
+        Property property = optionalProperty.get();
+        List<Long> interestedUserIds = property.getInterestedUserIds();
+
+        if (interestedUserIds == null) {
+            interestedUserIds = new ArrayList<>();
+        }
+
+        interestedUserIds.add(userId);
+        property.setInterestedUserIds(interestedUserIds);
+
+        propertyRepository.save(property);
+    }
+
+    @Override
+    public void addTenant(Long propertyId, Long userId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new IllegalArgumentException("Property with id " + propertyId + " not found"));
+
+        property.setTenantId(userId);
+        propertyRepository.save(property);
+    }
+
+    @Override
+    public void removeTenantAndAddToExTenants(Long propertyId, Long userId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new IllegalArgumentException("Property with id " + propertyId + " not found"));
+
+        if (property.getTenantId() != null && property.getTenantId().equals(userId)) {
+            property.setTenantId(null);
+
+            List<Long> exTenantIds = Optional.ofNullable(property.getExTenantIds()).orElse(new ArrayList<>());
+            if (!exTenantIds.contains(userId)) {
+                exTenantIds.add(userId);
+                property.setExTenantIds(exTenantIds);
+            }
+
+            propertyRepository.save(property);
+        } else {
+            throw new IllegalArgumentException("User with id " + userId + " is not a current tenant of this property");
+        }
+    }
+
+
+
 }

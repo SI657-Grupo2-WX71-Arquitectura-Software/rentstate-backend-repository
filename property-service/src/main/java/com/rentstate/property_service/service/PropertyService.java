@@ -8,19 +8,30 @@ import java.util.List;
 
 public interface PropertyService {
 
-    PropertyResponse createProperty(PropertyRequest propertyRequestDTO, Long userId);
+    Property createProperty(PropertyRequest propertyRequest, Long userId);
 
-    PropertyResponse updateProperty(Long id, PropertyRequest propertyRequestDTO, Long userId);
+    Property updateProperty(Long id, PropertyRequest propertyRequest);
 
-    PropertyResponse deleteProperty(Long id, Long userId);
+    void deleteProperty(Long id);
 
-    PropertyResponse getPropertyById(Long id);
+    Property getPropertyById(Long id);
 
-    List<PropertyResponse> getAllProperties();
+    Iterable<PropertyResponse> getAllProperties();
 
-    List<PropertyResponse> getPropertiesByUserId(Long userId);
+    Iterable<PropertyResponse> getPropertiesByUserId(Long userId);
 
-    PropertyResponse availableProperty(Long id, Long userId);
+    Property availableProperty(Long id);
 
-    PropertyResponse unavailableProperty(Long id, Long userId);
+    Property unavailableProperty(Long id);
+
+    Property rentedProperty(Long id);
+
+    Property unrentedProperty(Long id);
+
+    void addInterestedUser(Long propertyId, Long userId);
+
+    void addTenant(Long propertyId, Long userId);
+
+
+    void removeTenantAndAddToExTenants(Long propertyId, Long userId);
 }
