@@ -19,19 +19,39 @@ public class Property {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
+    private String category;
+
+    private String district;
+
+    private String location;
+
+    private String latitude;
+
+    private String longitude;
 
     private String description;
 
     private String characteristics;
 
-    private String location;
-
-    private String category;
-
     private Boolean available = true;
+
+    private Boolean rented = false;
+
+    private String cardimage;
+
+    private Float price;
 
     @Column(name = "user_id")
     private Long userId;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    private List<Long> interestedUserIds;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    private List<Long> exTenantIds;
+
 
 }
